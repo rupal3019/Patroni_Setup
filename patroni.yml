@@ -1,0 +1,61 @@
+scope: patroni-fs-cluster   ## common cluster name
+namespace: /fs/         ## namespace which will be use in etcd
+name: fs2                   ## name of node in cluster
+restapi:
+    listen: x.x.x.x:8008     ## VM ip addr
+    connect_address: x.x.x.x:8008
+etcd3:
+    hosts: <etcd_first_ip>:2379,<etcd_second_ip>:2379,<etcd_third_ip>:2379
+    username: <etcd_user>
+    password: <etcd_user_password>
+bootstrap:
+    dcs:
+        ttl: 30
+        loop_wait: 10
+        retry_timeout: 10
+        maximum_lag_on_failover: 1048576
+        postgresql:
+            use_pg_rewind: true
+            use_slots: true
+            parameters:
+                wal_level: replica
+                hot_standby: "on"
+                logging_collector: 'on'
+                max_wal_senders: 5
+                max_replication_slots: 5
+                wal_log_hints: "on"
+    initdb:
+    - encoding: UTF8
+    - data-checksums
+    pg_hba:
+    - host replication replicator 127.0.0.1/32 md5
+    - host replication replicator <patroni_ip1>/16 md5
+    - host replication replicator <patrtoni_ip2>/16 md5
+    - host replication replicator <patroni_ip3>/16 md5
+    - host all all 0.0.0.0/0 md5
+postgresql:
+    listen: <patroni_ip1>:5432
+    connect_address: <patroni_ip1>:5432
+    #data_dir: /mnt/patroni
+    data_dir: '/var/lib/postgresql/12/main'
+    #data_dir: /etc/postgresql/12/main
+    custom_conf: '/etc/postgresql/12/main/postgresql.conf'
+    bin_dir: '/usr/lib/postgresql/12/bin'
+    pgpass: /tmp/pgpass
+    authentication:
+        replication:
+            username: <replicator_user>
+            password: <replicator_user_password>
+        superuser:
+            username: postgres
+            password: <postgres-password>
+    parameters:
+        unix_socket_directories: '/var/run/postgresql'
+tags:
+    nofailover: false
+    noloadbalance: false
+    clonefrom: false
+    nosync: false
+log:
+    level: DEBUG
+    dir: /var/log/postgresql/
